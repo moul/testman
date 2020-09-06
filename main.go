@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
-	"moul.io/godev"
 	"moul.io/motd"
+	"moul.io/u"
 )
 
 var opts Opts
@@ -34,8 +34,8 @@ func run(args []string) error {
 	testFlags := flag.NewFlagSet("testman test", flag.ExitOnError)
 	testFlags.BoolVar(&opts.Verbose, "v", false, "verbose")
 	testFlags.StringVar(&opts.Run, "run", "^(Test|Example)", "regex to filter out tests and examples")
-	//testFlags.IntVar(&opts.Retry, "retry", 0, "fail after N retries")
-	//testFlags.DurationVar(&opts.Timeout, "timeout", opts.Timeout, "max duration allowed to run the whole suite")
+	testFlags.IntVar(&opts.Retry, "retry", 0, "fail after N retries")
+	testFlags.DurationVar(&opts.Timeout, "timeout", opts.Timeout, "max duration allowed to run the whole suite")
 	listFlags := flag.NewFlagSet("testman list", flag.ExitOnError)
 	listFlags.BoolVar(&opts.Verbose, "v", false, "verbose")
 	listFlags.StringVar(&opts.Run, "run", "^(Test|Example)", "regex to filter out tests and examples")
@@ -53,14 +53,14 @@ func run(args []string) error {
 				FlagSet:    testFlags,
 				ShortHelp:  "advanced go test workflows",
 				ShortUsage: "testman test [flags] [packages]",
-				LongHelp:   "EXAMPLES\n   testman test -v ./...",
+				LongHelp:   testLongHelp,
 				Exec:       runTest,
 			}, {
 				Name:       "list",
 				FlagSet:    listFlags,
 				ShortHelp:  "list available tests",
 				ShortUsage: "testman list [packages]",
-				LongHelp:   "EXAMPLE\n   testman list ./...",
+				LongHelp:   listLongHelp,
 				Exec:       runList,
 			},
 		},
@@ -69,11 +69,26 @@ func run(args []string) error {
 	return root.ParseAndRun(context.Background(), args[1:])
 }
 
+const (
+	testLongHelp = `EXAMPLES
+   testman test ./...
+   testman test -v ./...
+   testman test -run ^TestUnstable -timeout=300s -retry=50 ./...`
+	listLongHelp = `EXAMPLES
+   testman list ./...
+   testman list -v ./...
+   testman list -run ^TestStable ./...`
+)
+
 func runList(ctx context.Context, args []string) error {
 	if len(args) == 0 {
 		return flag.ErrHelp
 	}
-	preRun()
+	cleanup, err := preRun()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 
 	// list packages
 	pkgs, err := listPackagesWithTests(args)
@@ -103,22 +118,28 @@ func runTest(ctx context.Context, args []string) error {
 	if len(args) == 0 {
 		return flag.ErrHelp
 	}
-	preRun()
-	log.Printf("runTest opts=%s args=%s", godev.JSON(opts), godev.JSON(args))
+	cleanup, err := preRun()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
+
+	log.Printf("runTest opts=%s args=%s", u.JSON(opts), u.JSON(args))
 	start := time.Now()
+
+	if opts.Timeout > 0 {
+		go func() {
+			<-time.After(opts.Timeout)
+			fmt.Printf("FAIL: timed out after %s\n", time.Since(start))
+			os.Exit(1)
+		}()
+	}
 
 	// list packages
 	pkgs, err := listPackagesWithTests(args)
 	if err != nil {
 		return err
 	}
-
-	// create temp dir
-	tmpdir, err := ioutil.TempDir("", "testman")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tmpdir)
 
 	atLeastOneFailure := false
 	// list tests
@@ -133,7 +154,7 @@ func runTest(ctx context.Context, args []string) error {
 
 		pkgStart := time.Now()
 		// compile test binary
-		bin, err := compileTestBin(pkg, tmpdir)
+		bin, err := compileTestBin(pkg, opts.TmpDir)
 		if err != nil {
 			fmt.Printf("FAIL\t%s\t[compile error: %v]\n", pkg.ImportPath, err)
 			return err
@@ -144,22 +165,31 @@ func runTest(ctx context.Context, args []string) error {
 			// FIXME: check if matches run regex
 			args := []string{
 				"-test.count=1",
-				"-test.timeout=300s",
+				fmt.Sprintf("-test.timeout=%s", opts.Timeout),
 			}
 			if opts.Verbose {
 				args = append(args, "-test.v")
 			}
 			args = append(args, "-test.run", fmt.Sprintf("^%s$", test))
-			cmd := exec.Command(bin, args...)
-			log.Println(cmd.String())
-			out, err := cmd.CombinedOutput()
-			if err != nil {
-				fmt.Printf("FAIL\t%s.%s\t[compile error: %v]\n", pkg.ImportPath, test, err)
-				if opts.Verbose {
-					fmt.Println(string(out))
+			for i := opts.Retry; i >= 0; i-- {
+				cmd := exec.Command(bin, args...)
+				log.Println(cmd.String())
+				out, err := cmd.CombinedOutput()
+				if err != nil {
+					if i == 0 {
+						fmt.Printf("FAIL\t%s.%s\t[test error: %v]\n", pkg.ImportPath, test, err)
+						isPackageOK = false
+						atLeastOneFailure = true
+					} else if opts.Verbose {
+						fmt.Printf("RETRY\t%s.%s\t[test error: %v]\n", pkg.ImportPath, test, err)
+					}
+					if opts.Verbose {
+						fmt.Println(string(out))
+					}
+				} else {
+					fmt.Printf("ok\t%s.%s\n", pkg.ImportPath, test)
+					break
 				}
-				isPackageOK = false
-				atLeastOneFailure = true
 			}
 		}
 		if isPackageOK {
@@ -167,17 +197,29 @@ func runTest(ctx context.Context, args []string) error {
 		}
 	}
 
-	fmt.Printf("total: %s\n", time.Since(start))
+	log.Printf("total: %s\n", time.Since(start))
 	if atLeastOneFailure {
 		os.Exit(1)
 	}
 	return nil
 }
 
-func preRun() {
+func preRun() (func(), error) {
 	if !opts.Verbose {
 		log.SetOutput(ioutil.Discard)
 	}
+
+	// create temp dir
+	var err error
+	opts.TmpDir, err = ioutil.TempDir("", "testman")
+	if err != nil {
+		return nil, err
+	}
+
+	cleanup := func() {
+		os.RemoveAll(opts.TmpDir)
+	}
+	return cleanup, nil
 }
 
 func compileTestBin(pkg Package, tempdir string) (string, error) {
@@ -258,8 +300,9 @@ type Package struct {
 type Opts struct {
 	Verbose bool
 	Run     string
-	// Timeout time.Duration
-	// Retry   int
+	Timeout time.Duration
+	Retry   int
+	TmpDir  string
 	// c
 	// debug
 	// continueOnFailure vs failFast
