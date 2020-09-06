@@ -115,6 +115,7 @@ func runTest(ctx context.Context, args []string) error {
 	}
 	defer os.RemoveAll(tmpdir)
 
+	atLeastOneFailure := false
 	// list tests
 	for _, pkg := range pkgs {
 		tests, err := listDirTests(pkg.Dir)
@@ -130,7 +131,7 @@ func runTest(ctx context.Context, args []string) error {
 			return err
 		}
 
-		everythingIsOK := true
+		isPackageOK := true
 		for _, test := range tests {
 			// FIXME: check if matches run regex
 			args := []string{
@@ -149,15 +150,19 @@ func runTest(ctx context.Context, args []string) error {
 				if opts.verbose {
 					fmt.Println(string(out))
 				}
-				everythingIsOK = false
+				isPackageOK = false
+				atLeastOneFailure = true
 			}
 		}
-		if everythingIsOK {
+		if isPackageOK {
 			fmt.Printf("ok\t%s\t%s\n", pkg.ImportPath, time.Since(pkgStart))
 		}
 	}
 
 	fmt.Printf("total: %s\n", time.Since(start))
+	if atLeastOneFailure {
+		os.Exit(1)
+	}
 	return nil
 }
 
