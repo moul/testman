@@ -1,15 +1,16 @@
 package main
 
 import (
+	"flag"
 	"testing"
 
 	"go.uber.org/goleak"
 )
 
 func TestRun(t *testing.T) {
-	err := run(nil)
-	if err != nil {
-		t.Fatalf("err should be nil: %v", err)
+	err := run([]string{"testman"})
+	if err != flag.ErrHelp {
+		t.Fatalf("err should be flag.ErrHelp: %v", err)
 	}
 }
 
