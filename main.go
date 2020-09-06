@@ -9,10 +9,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
+	"moul.io/godev"
 	"moul.io/motd"
 )
 
@@ -28,15 +30,15 @@ func main() {
 }
 
 func run(args []string) error {
-	opts = Opts{
-		verbose: false,
-	}
-
+	// flags
 	testFlags := flag.NewFlagSet("testman test", flag.ExitOnError)
-	//testFlags.BoolVar(&opts.continueOnFailure, "continue-on-failure", opts.continueOnFailure, "Continue on failure")
-	testFlags.BoolVar(&opts.verbose, "v", opts.verbose, "verbose")
+	testFlags.BoolVar(&opts.Verbose, "v", false, "verbose")
+	testFlags.StringVar(&opts.Run, "run", "^(Test|Example)", "regex to filter out tests and examples")
+	//testFlags.IntVar(&opts.Retry, "retry", 0, "fail after N retries")
+	//testFlags.DurationVar(&opts.Timeout, "timeout", opts.Timeout, "max duration allowed to run the whole suite")
 	listFlags := flag.NewFlagSet("testman list", flag.ExitOnError)
-	listFlags.BoolVar(&opts.verbose, "v", opts.verbose, "verbose")
+	listFlags.BoolVar(&opts.Verbose, "v", false, "verbose")
+	listFlags.StringVar(&opts.Run, "run", "^(Test|Example)", "regex to filter out tests and examples")
 
 	root := &ffcli.Command{
 		ShortUsage: "testman <subcommand> [flags]",
@@ -85,6 +87,9 @@ func runList(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
+		if len(tests) == 0 {
+			continue
+		}
 
 		fmt.Println(pkg.ImportPath)
 		for _, test := range tests {
@@ -99,7 +104,7 @@ func runTest(ctx context.Context, args []string) error {
 		return flag.ErrHelp
 	}
 	preRun()
-
+	log.Printf("runTest opts=%s args=%s", godev.JSON(opts), godev.JSON(args))
 	start := time.Now()
 
 	// list packages
@@ -122,6 +127,9 @@ func runTest(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
+		if len(tests) == 0 {
+			continue
+		}
 
 		pkgStart := time.Now()
 		// compile test binary
@@ -138,7 +146,7 @@ func runTest(ctx context.Context, args []string) error {
 				"-test.count=1",
 				"-test.timeout=300s",
 			}
-			if opts.verbose {
+			if opts.Verbose {
 				args = append(args, "-test.v")
 			}
 			args = append(args, "-test.run", fmt.Sprintf("^%s$", test))
@@ -146,8 +154,8 @@ func runTest(ctx context.Context, args []string) error {
 			log.Println(cmd.String())
 			out, err := cmd.CombinedOutput()
 			if err != nil {
-				fmt.Printf("FAIL\t%s\t[compile error: %v]\n", pkg.ImportPath, err)
-				if opts.verbose {
+				fmt.Printf("FAIL\t%s.%s\t[compile error: %v]\n", pkg.ImportPath, test, err)
+				if opts.Verbose {
 					fmt.Println(string(out))
 				}
 				isPackageOK = false
@@ -167,7 +175,7 @@ func runTest(ctx context.Context, args []string) error {
 }
 
 func preRun() {
-	if !opts.verbose {
+	if !opts.Verbose {
 		log.SetOutput(ioutil.Discard)
 	}
 }
@@ -204,6 +212,15 @@ func listDirTests(dir string) ([]string, error) {
 		if strings.HasPrefix(line, "ok ") {
 			continue
 		}
+		if opts.Run != "" {
+			matched, err := regexp.MatchString(opts.Run, line)
+			if err != nil {
+				return nil, err
+			}
+			if !matched {
+				continue
+			}
+		}
 		tests = append(tests, line)
 	}
 	return tests, nil
@@ -239,11 +256,11 @@ type Package struct {
 }
 
 type Opts struct {
-	verbose bool
-	// run
-	// timeout
+	Verbose bool
+	Run     string
+	// Timeout time.Duration
+	// Retry   int
 	// c
 	// debug
-	// retries
 	// continueOnFailure vs failFast
 }
