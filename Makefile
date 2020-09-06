@@ -4,3 +4,6 @@ GOBINS ?=	.
 NPM_PACKAGES ?=	.
 
 include rules.mk
+
+integration: install
+	cd examples && make integration
