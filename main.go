@@ -35,7 +35,8 @@ func run(args []string) error {
 	testFlags.BoolVar(&opts.Verbose, "v", false, "verbose")
 	testFlags.StringVar(&opts.Run, "run", "^(Test|Example)", "regex to filter out tests and examples")
 	testFlags.IntVar(&opts.Retry, "retry", 0, "fail after N retries")
-	testFlags.DurationVar(&opts.Timeout, "timeout", opts.Timeout, "max duration allowed to run the whole suite")
+	testFlags.DurationVar(&opts.Timeout, "timeout", 0, "max duration allowed to run the whole suite")
+	testFlags.BoolVar(&opts.ContinueOnError, "continue-on-error", false, "continue on error (but still fails at the end)")
 	listFlags := flag.NewFlagSet("testman list", flag.ExitOnError)
 	listFlags.BoolVar(&opts.Verbose, "v", false, "verbose")
 	listFlags.StringVar(&opts.Run, "run", "^(Test|Example)", "regex to filter out tests and examples")
@@ -298,11 +299,12 @@ type Package struct {
 }
 
 type Opts struct {
-	Verbose bool
-	Run     string
-	Timeout time.Duration
-	Retry   int
-	TmpDir  string
+	Verbose         bool
+	Run             string
+	Timeout         time.Duration
+	Retry           int
+	TmpDir          string
+	ContinueOnError bool
 	// c
 	// debug
 	// continueOnFailure vs failFast

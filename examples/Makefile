@@ -1,8 +1,12 @@
+TMPDIR ?= /tmp/testman-integration
+
 integration:
 	# test with testman
+	@mkdir -p $(TMPDIR)
 	testman test -timeout=10s -run ^TestStable ./...  # should always work
 	testman test -timeout=60s -run ^TestUnstable -retry=50 ./...  # should work at least 1/50
-	@# FIXME: test broken tests
+	(testman test -timeout=10s -continue-on-error -retry=10 ./...; echo "EXIT CODE: $$?") | tee $(TMPDIR)/got.continue-on-error.log	  # should fail, but also run all tests
+	diff ./testdata/expected.continue-on-error.log $(TMPDIR)/got.continue-on-error.log
 
 	# test with default tools
 	go install moul.io/retry
@@ -12,3 +16,4 @@ integration:
 	go mod tidy
 
 	@echo "SUCCESS."
+	@rm -rf $(TMPDIR)
