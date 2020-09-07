@@ -1,7 +1,7 @@
 integration:
 	# test with testman
-	testman test -run ^TestStable ./...
-	@# FIXME: test unstable tests
+	testman test -timeout=10s -run ^TestStable ./...  # should always work
+	testman test -timeout=60s -run ^TestUnstable -retry=50 ./...  # should work at least 1/50
 	@# FIXME: test broken tests
 
 	# test with default tools

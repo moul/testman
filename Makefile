@@ -1,5 +1,6 @@
 GOPKG ?=	moul.io/testman
 DOCKER_IMAGE ?=	moul/testman
+GOMOD_DIRS ?= .
 GOBINS ?=	.
 NPM_PACKAGES ?=	.
 
