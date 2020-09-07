@@ -1,6 +1,6 @@
 # testman
 
-:smile: testman
+😎 `go test` wrapper for advanced testing workflows in Go
 
 [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/moul.io/testman)
 [![License](https://img.shields.io/badge/license-Apache--2.0%20%2F%20MIT-%2397ca00.svg)](https://github.com/moul/testman/blob/master/COPYRIGHT)
@@ -19,7 +19,60 @@
 
 ## Usage
 
-TODO
+*testman -h*
+
+[embedmd]:# (.tmp/root-usage.txt)
+```txt
+USAGE
+  testman <subcommand> [flags]
+
+SUBCOMMANDS
+  test  advanced go test workflows
+  list  list available tests
+```
+
+*testman test -h*
+
+[embedmd]:# (.tmp/test-usage.txt)
+```txt
+USAGE
+  testman test [flags] [packages]
+
+EXAMPLES
+   testman test ./...
+   testman test -v ./...
+   testman test -run ^TestUnstable -timeout=300s -retry=50 ./...
+   testman test -run ^TestBroken -test.timeout=30s -retry=10 --continue-on-error ./...
+   testman test -test.timeout=10s -test.v -test.count=2 -test.race
+
+FLAGS
+  -continue-on-error false  continue on error (but still fails at the end)
+  -retry 0                  fail after N retries
+  -run ^(Test|Example)      regex to filter out tests and examples
+  -test.count 1             `go test -count=VAL`
+  -test.race false          `go test -race`
+  -test.timeout 0s          `go test -timeout=VAL`
+  -test.v false             `go test -v`
+  -timeout 0s               program max duration
+  -v false                  verbose
+```
+
+*testman list -h*
+
+[embedmd]:# (.tmp/list-usage.txt)
+```txt
+USAGE
+  testman list [packages]
+
+EXAMPLES
+   testman list ./...
+   testman list -v ./...
+   testman list -run ^TestStable ./...
+
+FLAGS
+  -run ^(Test|Example)  regex to filter out tests and examples
+  -v false              verbose
+```
 
 ## Install
 
