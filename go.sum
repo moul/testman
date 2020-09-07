@@ -49,5 +49,5 @@ moul.io/godev v1.7.0 h1:PgnL7BsCQPPjKwu9V0oxIVm2MyZAHAN2sl0S3+E37U0=
 moul.io/godev v1.7.0/go.mod h1:5lgSpI1oH7xWpLl2Ew/Nsgk8DiNM6FzN9WV9+lgW8RQ=
 moul.io/motd v1.0.0 h1:Trk4fPibDfPJf2iCBSQC8ws7Q02sMwivQdVEFAjCPto=
 moul.io/motd v1.0.0/go.mod h1:39rvZ0lC2oRhHDY2VoPyZ8r70VKqeJye3QAxjeLDJso=
-moul.io/u v1.6.0 h1:hZwwppk8LZJMGb12ggEAMPfE27MWzhEVgFxgHxwtfMg=
-moul.io/u v1.6.0/go.mod h1:yd3/IoYRIJaZWAJV2rYHvM2EPp/Pp0zSNraB5IPX+hw=
+moul.io/u v1.7.0 h1:hQsLFj4ZoFDNk/V07sA1c8lh2Xp7W/BVf6CmNRmwueg=
+moul.io/u v1.7.0/go.mod h1:yd3/IoYRIJaZWAJV2rYHvM2EPp/Pp0zSNraB5IPX+hw=
