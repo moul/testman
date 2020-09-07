@@ -35,8 +35,12 @@ func run(args []string) error {
 	testFlags.BoolVar(&opts.Verbose, "v", false, "verbose")
 	testFlags.StringVar(&opts.Run, "run", "^(Test|Example)", "regex to filter out tests and examples")
 	testFlags.IntVar(&opts.Retry, "retry", 0, "fail after N retries")
-	testFlags.DurationVar(&opts.Timeout, "timeout", 0, "max duration allowed to run the whole suite")
+	testFlags.DurationVar(&opts.Timeout, "timeout", 0, "program max duration")
 	testFlags.BoolVar(&opts.ContinueOnError, "continue-on-error", false, "continue on error (but still fails at the end)")
+	testFlags.DurationVar(&opts.TestTimeout, "test.timeout", 0, "`go test -timeout=VAL`")
+	testFlags.IntVar(&opts.TestCount, "test.count", 1, "`go test -count=VAL`")
+	testFlags.BoolVar(&opts.TestV, "test.v", false, "`go test -v`")
+	testFlags.BoolVar(&opts.TestRace, "test.race", false, "`go test -race`")
 	listFlags := flag.NewFlagSet("testman list", flag.ExitOnError)
 	listFlags.BoolVar(&opts.Verbose, "v", false, "verbose")
 	listFlags.StringVar(&opts.Run, "run", "^(Test|Example)", "regex to filter out tests and examples")
@@ -74,7 +78,9 @@ const (
 	testLongHelp = `EXAMPLES
    testman test ./...
    testman test -v ./...
-   testman test -run ^TestUnstable -timeout=300s -retry=50 ./...`
+   testman test -run ^TestUnstable -timeout=300s -retry=50 ./...
+   testman test -run ^TestBroken -test.timeout=30s -retry=10 --continue-on-error ./...
+   testman test -test.timeout=10s -test.v -test.count=2 -test.race`
 	listLongHelp = `EXAMPLES
    testman list ./...
    testman list -v ./...
@@ -165,10 +171,16 @@ func runTest(ctx context.Context, args []string) error {
 		for _, test := range tests {
 			// FIXME: check if matches run regex
 			args := []string{
-				"-test.count=1",
-				fmt.Sprintf("-test.timeout=%s", opts.Timeout),
+				fmt.Sprintf("-test.count=%d", opts.TestCount),
 			}
-			if opts.Verbose {
+			timeout := opts.TestTimeout
+			if opts.Timeout > 0 && opts.Timeout < opts.TestTimeout {
+				timeout = opts.Timeout
+			}
+			if timeout > 0 {
+				args = append(args, fmt.Sprintf("-test.timeout=%s", timeout))
+			}
+			if opts.TestV {
 				args = append(args, "-test.v")
 			}
 			args = append(args, "-test.run", fmt.Sprintf("^%s$", test))
@@ -226,7 +238,15 @@ func preRun() (func(), error) {
 func compileTestBin(pkg Package, tempdir string) (string, error) {
 	name := strings.Replace(pkg.ImportPath, "/", "~", -1)
 	bin := filepath.Join(tempdir, name)
-	cmd := exec.Command("go", "test", "-c", "-o", bin)
+	args := []string{"test", "-c"}
+	if opts.TestV {
+		args = append(args, "-v")
+	}
+	if opts.TestRace {
+		args = append(args, "-race")
+	}
+	args = append(args, "-o", bin)
+	cmd := exec.Command("go", args...)
 	cmd.Dir = pkg.Dir
 	log.Println(cmd.String())
 	out, err := cmd.CombinedOutput()
@@ -305,7 +325,10 @@ type Opts struct {
 	Retry           int
 	TmpDir          string
 	ContinueOnError bool
-	// c
-	// debug
-	// continueOnFailure vs failFast
+
+	// test.*
+	TestTimeout time.Duration
+	TestV       bool
+	TestCount   int
+	TestRace    bool
 }
