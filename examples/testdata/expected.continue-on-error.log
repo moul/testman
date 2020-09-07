@@ -1,0 +1,5 @@
+ok	moul.io/testman/examples/testpkg.TestStableAlwaysSucceed
+ok	moul.io/testman/examples/testpkg.TestUnstableMaySucceed
+FAIL	moul.io/testman/examples/testpkg.TestBrokenAlwaysFailing	[test error: exit status 1]
+ok	moul.io/testman/examples/testpkg.ExampleAlwaysSucceed
+EXIT CODE: 1
