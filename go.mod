@@ -7,5 +7,5 @@ require (
 	github.com/stretchr/testify v1.6.1
 	go.uber.org/goleak v1.1.10
 	moul.io/motd v1.0.0
-	moul.io/u v1.7.0
+	moul.io/u v1.9.0
 )
