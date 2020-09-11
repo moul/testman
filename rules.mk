@@ -73,7 +73,7 @@ GO ?= go
 GOPATH ?= $(HOME)/go
 GO_INSTALL_OPTS ?=
 GO_TEST_OPTS ?= -test.timeout=30s
-GOMOD_DIRS ?= $(sort $(call novendor,$(dir $(call rwildcard,.,*/go.mod go.mod))))
+GOMOD_DIRS ?= $(sort $(call novendor,$(dir $(call rwildcard,*,*/go.mod go.mod))))
 GOCOVERAGE_FILE ?= ./coverage.txt
 GOTESTJSON_FILE ?= ./go-test.json
 GOBUILDLOG_FILE ?= ./go-build.log
