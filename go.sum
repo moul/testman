@@ -41,5 +41,5 @@ moul.io/banner v1.0.1 h1:+WsemGLhj2pOajw2eR5VYjLhOIqs0XhIRYchzTyMLk0=
 moul.io/banner v1.0.1/go.mod h1:XwvIGKkhKRKyN1vIdmR5oaKQLIkMhkMqrsHpS94QzAU=
 moul.io/motd v1.0.0 h1:Trk4fPibDfPJf2iCBSQC8ws7Q02sMwivQdVEFAjCPto=
 moul.io/motd v1.0.0/go.mod h1:39rvZ0lC2oRhHDY2VoPyZ8r70VKqeJye3QAxjeLDJso=
-moul.io/u v1.11.0 h1:sCnklExCDKp+EaLLPJQ4eZzKWQjjh0szkWFFlb6pt4E=
-moul.io/u v1.11.0/go.mod h1:bfsObgTWe/6jwjxpacwG+gUXoSNrfwZj7Avl19Wq0w4=
+moul.io/u v1.13.0 h1:ijCMDQ1KnCjhjltNh4iaELHrKliu4IpG7PqgP1hdmvU=
+moul.io/u v1.13.0/go.mod h1:bfsObgTWe/6jwjxpacwG+gUXoSNrfwZj7Avl19Wq0w4=
